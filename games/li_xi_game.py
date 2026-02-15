@@ -140,7 +140,7 @@ class LiXiNgayTetGame(BaseGame):
             result["winner"] = "draw"
             self.log_event(
                 f"Player {player1_id} vs {player2_id}: HÒA "
-                f"(tuổi {age1} vs {age2}), mỗi người +{bonus}"
+                f"mỗi người +{bonus}"
             )
 
         # Thắng / Thua
@@ -189,7 +189,7 @@ class LiXiNgayTetGame(BaseGame):
         self.players[player_id]["age"] = new_age
         self.players[player_id]["reroll_used"] = True
 
-        self.log_event(f"Player {player_id} reroll: {old_age} -> {new_age}")
+        self.log_event(f"Player {player_id} reroll age. Old age: {old_age}.")
         return True, "", new_age
 
     def get_leaderboard(self) -> List[tuple[int, int]]:
