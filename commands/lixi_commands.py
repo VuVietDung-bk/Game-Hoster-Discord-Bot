@@ -141,6 +141,7 @@ class LiXiCommands(commands.Cog):
             return
 
         p = game.players[interaction.user.id]
+        gamble_remaining = 200 - p.get("gamble_count", 0)
         embed = discord.Embed(
             title=f"📊 Thống kê của {interaction.user.display_name}",
             color=discord.Color.blue(),
@@ -153,6 +154,11 @@ class LiXiCommands(commands.Cog):
         embed.add_field(
             name="🔄 Reroll",
             value="Đã dùng" if p["reroll_used"] else "Chưa dùng",
+            inline=True,
+        )
+        embed.add_field(
+            name="🎰 Cược hôm nay",
+            value=f"{p.get('gamble_count', 0)}/200 (còn {gamble_remaining})",
             inline=True,
         )
 

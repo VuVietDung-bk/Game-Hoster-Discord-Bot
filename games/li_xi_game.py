@@ -65,6 +65,7 @@ class LiXiNgayTetGame(BaseGame):
                 "age": random.randint(1, 2 * N),
                 "fights_today": set(),
                 "reroll_used": False,
+                "gamble_count": 0,
             }
 
         self.log_event(f"Game bắt đầu với {len(self.players)} người chơi")
@@ -78,6 +79,7 @@ class LiXiNgayTetGame(BaseGame):
         for player_id in self.players:
             self.players[player_id]["fights_today"] = set()
             self.players[player_id]["reroll_used"] = False
+            self.players[player_id]["gamble_count"] = 0
             self.players[player_id]["money"] += M // 10
             # Random lại tuổi đầu ngày
             self.players[player_id]["age"] = random.randint(1, 2 * N)
@@ -222,6 +224,10 @@ class LiXiNgayTetGame(BaseGame):
         if bet <= 0:
             return False, "Số tiền phải lớn hơn 0", {}
 
+        # Kiểm tra giới hạn gamble hôm nay (200 lần/ngày)
+        if self.players[player_id]["gamble_count"] >= 200:
+            return False, "❌ Bạn đã đạt giới hạn 200 lần cược hôm nay!", {}
+
         if self.players[player_id]["money"] < bet:
             return False, f"Bạn chỉ có {self.players[player_id]['money']} đồng", {}
 
@@ -243,6 +249,9 @@ class LiXiNgayTetGame(BaseGame):
             result["win"] = False
             result["money_change"] = -bet
             self.log_event(f"Player {player_id} gamble THUA! -{bet} đồng")
+
+        # Tăng counter cược hôm nay
+        self.players[player_id]["gamble_count"] += 1
 
         return True, "", result
 
