@@ -132,9 +132,9 @@ class HostCommands(commands.Cog):
                     modal_self.add_item(modal_self.duration)
 
                     modal_self.interval_input = discord.ui.TextInput(
-                        label="Chu kỳ ngày (12h / 1d / 2d)",
+                        label="Chu kỳ ngày (10m / 12h / 1d / 2d)",
                         default=str(game.settings["game_interval"].value),
-                        max_length=3,
+                        max_length=4,
                     )
                     modal_self.add_item(modal_self.interval_input)
 

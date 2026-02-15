@@ -45,7 +45,8 @@ class LiXiNgayTetGame(BaseGame):
                 try:
                     GameInterval(val)
                 except ValueError:
-                    return False, "game_interval phải là 12h, 1d hoặc 2d"
+                    valid_intervals = ", ".join([e.value for e in GameInterval])
+                    return False, f"game_interval phải là {valid_intervals}"
 
         return True, ""
 
