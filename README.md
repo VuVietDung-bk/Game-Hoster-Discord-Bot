@@ -102,6 +102,8 @@ python bot.py
 | `/fight <opponent> <bet>` | Thách đấu người khác |
 | `/stats` | Xem thông tin bản thân |
 | `/reroll` | Random lại tuổi (1 lần/ngày) |
+| `/giveaway <user> <money>` | Tặng tiền cho người khác |
+| `/gamble <bet>` | Con bạc simulator |
 | `/leaderboard` | Xem bảng xếp hạng |
 
 ## 🎯 Quy trình chơi game

@@ -192,6 +192,60 @@ class LiXiNgayTetGame(BaseGame):
         self.log_event(f"Player {player_id} reroll age. Old age: {old_age}.")
         return True, "", new_age
 
+    def giveaway(self, giver_id: int, recipient_id: int, amount: int) -> tuple[bool, str]:
+        """Tặng tiền cho người khác."""
+        if giver_id not in self.players:
+            return False, "Bạn chưa tham gia game"
+
+        if recipient_id not in self.players:
+            return False, "Người nhận chưa tham gia game"
+
+        if amount <= 0:
+            return False, "Số tiền phải lớn hơn 0"
+
+        if self.players[giver_id]["money"] < amount:
+            return False, f"Bạn chỉ có {self.players[giver_id]['money']} đồng"
+
+        self.players[giver_id]["money"] -= amount
+        self.players[recipient_id]["money"] += amount
+
+        self.log_event(
+            f"Player {giver_id} giveaway {amount} đồng cho Player {recipient_id}"
+        )
+        return True, ""
+
+    def gamble(self, player_id: int, bet: int) -> tuple[bool, str, dict]:
+        """Cố gắng vận may: 1% thắng 200*bet, 99% thua bet."""
+        if player_id not in self.players:
+            return False, "Bạn chưa tham gia game", {}
+
+        if bet <= 0:
+            return False, "Số tiền phải lớn hơn 0", {}
+
+        if self.players[player_id]["money"] < bet:
+            return False, f"Bạn chỉ có {self.players[player_id]['money']} đồng", {}
+
+        result = {
+            "win": False,
+            "money_change": 0,
+        }
+
+        # 1% để thắng
+        if random.randint(1, 100) == 1:
+            reward = bet * 200
+            self.players[player_id]["money"] += reward
+            result["win"] = True
+            result["money_change"] = reward
+            self.log_event(f"Player {player_id} gamble THẮNG! +{reward} đồng")
+        else:
+            # 99% thua
+            self.players[player_id]["money"] -= bet
+            result["win"] = False
+            result["money_change"] = -bet
+            self.log_event(f"Player {player_id} gamble THUA! -{bet} đồng")
+
+        return True, "", result
+
     def get_leaderboard(self) -> List[tuple[int, int]]:
         """Lấy bảng xếp hạng (dùng được cả khi game ENDED)."""
         leaderboard = [

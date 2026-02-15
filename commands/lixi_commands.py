@@ -191,6 +191,115 @@ class LiXiCommands(commands.Cog):
         )
 
     # ------------------------------------------------------------------
+    # /giveaway
+    # ------------------------------------------------------------------
+
+    @app_commands.command(
+        name="giveaway", description="[Lì Xì] Tặng tiền cho người khác"
+    )
+    @app_commands.describe(user="Người nhận tiền", money="Số tiền tặng")
+    async def giveaway(
+        self, interaction: discord.Interaction, user: discord.User, money: int
+    ):
+        if not _in_game_channel(self.bot, interaction):
+            await interaction.response.send_message(
+                "❌ Lệnh này chỉ được dùng trong kênh game!", ephemeral=True
+            )
+            return
+
+        game = self._get_running_game()
+        if not game:
+            await interaction.response.send_message(
+                "❌ Không có game Lì Xì nào đang chạy!", ephemeral=True
+            )
+            return
+
+        success, error = game.giveaway(interaction.user.id, user.id, money)
+        if not success:
+            await interaction.response.send_message(
+                f"❌ {error}", ephemeral=True
+            )
+            return
+
+        embed = discord.Embed(
+            title="🎁 TẶNG TIỀN THÀNH CÔNG",
+            color=discord.Color.green(),
+        )
+        embed.add_field(
+            name="Tặng từ",
+            value=interaction.user.mention,
+            inline=True,
+        )
+        embed.add_field(name="→", value="💸", inline=True)
+        embed.add_field(
+            name="Tặng cho",
+            value=user.mention,
+            inline=True,
+        )
+        embed.add_field(
+            name="💰 Số tiền",
+            value=f"{money:,} đồng",
+            inline=False,
+        )
+
+        await interaction.response.send_message(embed=embed)
+
+    # ------------------------------------------------------------------
+    # /gamble
+    # ------------------------------------------------------------------
+
+    @app_commands.command(
+        name="gamble", description="[Lì Xì] Cố gắng vận may (1% thắng 200x, 99% thua)"
+    )
+    @app_commands.describe(bet="Số tiền cược")
+    async def gamble(self, interaction: discord.Interaction, bet: int):
+        if not _in_game_channel(self.bot, interaction):
+            await interaction.response.send_message(
+                "❌ Lệnh này chỉ được dùng trong kênh game!", ephemeral=True
+            )
+            return
+
+        game = self._get_running_game()
+        if not game:
+            await interaction.response.send_message(
+                "❌ Không có game Lì Xì nào đang chạy!", ephemeral=True
+            )
+            return
+
+        if bet <= 0:
+            await interaction.response.send_message(
+                "❌ Số tiền phải lớn hơn 0!", ephemeral=True
+            )
+            return
+
+        success, error, result = game.gamble(interaction.user.id, bet)
+        if not success:
+            await interaction.response.send_message(
+                f"❌ {error}", ephemeral=True
+            )
+            return
+
+        embed = discord.Embed(
+            title="🎰 KẾT QUẢ CƯỢC",
+            color=discord.Color.gold() if result["win"] else discord.Color.red(),
+        )
+
+        if result["win"]:
+            embed.add_field(
+                name="🎉 VÃI LOZ",
+                value=f"**+{result['money_change']:,}** đồng (cược {bet:,} đồng → thắng 200 lần!)",
+                inline=False,
+            )
+        else:
+            embed.add_field(
+                name="😢 BỎ ĐI MÀ LÀM NGƯỜI!",
+                value=f"**-{bet:,}** đồng (xui là 99% mà!)",
+                inline=False,
+            )
+
+        await interaction.response.send_message(embed=embed)
+
+    # ------------------------------------------------------------------
     # /leaderboard
     # ------------------------------------------------------------------
 

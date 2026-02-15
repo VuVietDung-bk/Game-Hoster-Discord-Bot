@@ -47,6 +47,8 @@ class UserCommands(commands.Cog):
                         "`/fight` - Thách đấu người khác\n"
                         "`/stats` - Xem thông tin bản thân\n"
                         "`/reroll` - Random lại tuổi (1 lần/ngày)\n"
+                        "`/giveaway` - Tặng tiền cho người khác\n"
+                        "`/gamble` - Người chơi không bao giờ thắng (1% thắng 200x, 99% thua)\n"
                         "`/leaderboard` - Xem bảng xếp hạng"
                     ),
                     inline=False,
@@ -168,6 +170,14 @@ class UserCommands(commands.Cog):
                     "• Mỗi cặp chỉ đấu 1 lần/ngày\n"
                     "• Reroll tuổi 1 lần/ngày\n"
                     "• Sau mỗi ngày: +M/10 đồng & random lại tuổi"
+                ),
+                inline=False,
+            )
+            embed.add_field(
+                name="Tính năng khác",
+                value=(
+                    "• Giveaway: Tặng tiền cho người khác\n"
+                    "• Gamble: Con bạc simulator"
                 ),
                 inline=False,
             )
