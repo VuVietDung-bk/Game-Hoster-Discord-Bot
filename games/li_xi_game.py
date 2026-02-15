@@ -165,7 +165,7 @@ class LiXiNgayTetGame(BaseGame):
 
             self.log_event(
                 f"Player {player1_id} vs {player2_id}: "
-                f"{winner_id} THẮNG (tuổi {age1} vs {age2}), ±{bet}"
+                f"{winner_id} THẮNG, ±{bet}"
             )
 
         # Đánh dấu đã đấu hôm nay
