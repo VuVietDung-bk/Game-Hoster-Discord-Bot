@@ -44,6 +44,7 @@ class MinigameBot(commands.Bot):
     @staticmethod
     def get_interval_timedelta(interval: GameInterval) -> timedelta:
         mapping = {
+            GameInterval.TEST_INTERVAL: timedelta(minutes=10),
             GameInterval.TWELVE_HOURS: timedelta(hours=12),
             GameInterval.ONE_DAY: timedelta(days=1),
             GameInterval.TWO_DAYS: timedelta(days=2),

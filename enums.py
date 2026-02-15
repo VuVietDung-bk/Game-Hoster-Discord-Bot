@@ -15,6 +15,7 @@ class GameState(Enum):
 
 
 class GameInterval(Enum):
+    TEST_INTERVAL = "10m"
     TWELVE_HOURS = "12h"
     ONE_DAY = "1d"
     TWO_DAYS = "2d"

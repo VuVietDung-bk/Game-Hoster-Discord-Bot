@@ -1,5 +1,6 @@
 import os
 import logging
+import webserver
 
 from dotenv import load_dotenv
 
@@ -17,4 +18,5 @@ if __name__ == "__main__":
             filename="discord.log", encoding="utf-8", mode="w"
         )
         bot = MinigameBot()
+        webserver.keep_alive()
         bot.run(TOKEN, log_handler=handler, log_level=logging.DEBUG)
