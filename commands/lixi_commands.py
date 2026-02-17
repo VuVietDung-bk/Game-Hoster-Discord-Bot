@@ -13,6 +13,79 @@ if TYPE_CHECKING:
     from bot import MinigameBot
 
 
+class LeaderboardView(discord.ui.View):
+    """View cho phân trang bảng xếp hạng."""
+
+    def __init__(self, leaderboard_data: list, game_day: int, bot, user_id: int):
+        super().__init__()
+        self.leaderboard_data = leaderboard_data
+        self.game_day = game_day
+        self.bot = bot
+        self.user_id = user_id
+        self.current_page = 0
+        self.total_pages = (len(leaderboard_data) + 9) // 10  # Làm tròn lên
+        self.update_buttons()
+
+    def update_buttons(self):
+        """Cập nhật trạng thái các nút."""
+        self.prev_button.disabled = self.current_page == 0
+        self.next_button.disabled = self.current_page == self.total_pages - 1
+
+    def get_page_embed(self) -> discord.Embed:
+        """Tạo embed cho trang hiện tại."""
+        start_idx = self.current_page * 10
+        end_idx = start_idx + 10
+        page_data = self.leaderboard_data[start_idx:end_idx]
+
+        embed = discord.Embed(
+            title="🏆 BẢNG XẾP HẠNG",
+            description=f"Ngày {self.game_day} | Trang {self.current_page + 1}/{self.total_pages}",
+            color=discord.Color.gold(),
+        )
+
+        description = ""
+        for idx, (player_id, money) in enumerate(page_data, start=start_idx + 1):
+            try:
+                user = self.bot.get_user(player_id)
+                if not user:
+                    continue
+                medal = (
+                    ["🥇", "🥈", "🥉"][idx - 1] if idx <= 3 else f"#{idx}"
+                )
+                description += f"{medal} **{user.display_name}**: {money:,} đồng\n"
+            except Exception:
+                continue
+
+        embed.description = description or "Không có người chơi"
+        return embed
+
+    @discord.ui.button(label="⬅️", style=discord.ButtonStyle.blurple)
+    async def prev_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message(
+                "❌ Chỉ người gọi lệnh mới có thể sử dụng nút này!", ephemeral=True
+            )
+            return
+        
+        if self.current_page > 0:
+            self.current_page -= 1
+            self.update_buttons()
+            await interaction.response.edit_message(embed=self.get_page_embed(), view=self)
+
+    @discord.ui.button(label="➡️", style=discord.ButtonStyle.blurple)
+    async def next_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message(
+                "❌ Chỉ người gọi lệnh mới có thể sử dụng nút này!", ephemeral=True
+            )
+            return
+        
+        if self.current_page < self.total_pages - 1:
+            self.current_page += 1
+            self.update_buttons()
+            await interaction.response.edit_message(embed=self.get_page_embed(), view=self)
+
+
 def _in_game_channel(bot: MinigameBot, interaction: discord.Interaction) -> bool:
     """True nếu game_channel chưa set hoặc user đang ở đúng kênh."""
     if not bot.current_game:
@@ -327,26 +400,17 @@ class LiXiCommands(commands.Cog):
             return
 
         leaderboard_data = game.get_leaderboard()
+        
+        if not leaderboard_data:
+            await interaction.response.send_message(
+                "❌ Không có người chơi nào!", ephemeral=True
+            )
+            return
 
-        embed = discord.Embed(
-            title="🏆 BẢNG XẾP HẠNG",
-            description=f"Ngày {game.current_day}",
-            color=discord.Color.gold(),
-        )
-
-        description = ""
-        for idx, (player_id, money) in enumerate(leaderboard_data[:10], 1):
-            try:
-                user = await self.bot.fetch_user(player_id)
-                medal = (
-                    ["🥇", "🥈", "🥉"][idx - 1] if idx <= 3 else f"#{idx}"
-                )
-                description += f"{medal} **{user.display_name}**: {money:,} đồng\n"
-            except Exception:
-                continue
-
-        embed.description = description or "Không có người chơi"
-        await interaction.response.send_message(embed=embed)
+        view = LeaderboardView(leaderboard_data, game.current_day, self.bot, interaction.user.id)
+        embed = view.get_page_embed()
+        
+        await interaction.response.send_message(embed=embed, view=view)
 
 
 async def setup(bot: MinigameBot):
