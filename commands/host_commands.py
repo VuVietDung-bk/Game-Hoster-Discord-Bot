@@ -14,6 +14,7 @@ from enums import GameInterval, GameState, GameType
 from game_factory import GameFactory
 from games.base_game import BaseGame
 from games.li_xi_game import LiXiNgayTetGame
+from games.kro_game import KRoGame
 
 if TYPE_CHECKING:
     from bot import MinigameBot
@@ -138,6 +139,28 @@ class HostCommands(commands.Cog):
                     )
                     modal_self.add_item(modal_self.interval_input)
 
+                elif isinstance(game, KRoGame):
+                    modal_self.max_penalty = discord.ui.TextInput(
+                        label="Điểm phạt tối đa (5-20)",
+                        default=str(game.settings["max_penalty"]),
+                        max_length=2,
+                    )
+                    modal_self.add_item(modal_self.max_penalty)
+
+                    modal_self.player_limit = discord.ui.TextInput(
+                        label="Giới hạn người chơi (2-5)",
+                        default=str(game.settings["player_limit"]),
+                        max_length=1,
+                    )
+                    modal_self.add_item(modal_self.player_limit)
+
+                    modal_self.interval_input = discord.ui.TextInput(
+                        label="Chu kỳ vòng (1m/2m/5m/10m/30m/12h)",
+                        default=str(game.settings["game_interval"]),
+                        max_length=4,
+                    )
+                    modal_self.add_item(modal_self.interval_input)
+
             async def on_submit(modal_self, interaction: discord.Interaction):
                 try:
                     new_settings: dict = {}
@@ -152,6 +175,17 @@ class HostCommands(commands.Cog):
                             modal_self.duration.value
                         )
                         new_settings["game_interval"] = GameInterval(
+                            modal_self.interval_input.value.strip().lower()
+                        )
+
+                    elif isinstance(modal_self.game, KRoGame):
+                        new_settings["max_penalty"] = int(
+                            modal_self.max_penalty.value
+                        )
+                        new_settings["player_limit"] = int(
+                            modal_self.player_limit.value
+                        )
+                        new_settings["game_interval"] = (
                             modal_self.interval_input.value.strip().lower()
                         )
 
@@ -268,10 +302,11 @@ class HostCommands(commands.Cog):
         game.state = GameState.RUNNING
         game.start_time = datetime.now()
 
-        interval_td = self.bot.get_interval_timedelta(
-            game.settings.get("game_interval", GameInterval.ONE_DAY)
-        )
-        game.next_day_at = game.start_time + interval_td
+        if isinstance(game, LiXiNgayTetGame):
+            interval_td = self.bot.get_interval_timedelta(
+                game.settings.get("game_interval", GameInterval.ONE_DAY)
+            )
+            game.next_day_at = game.start_time + interval_td
 
         await game.on_game_start()
 
@@ -290,6 +325,14 @@ class HostCommands(commands.Cog):
                 await channel.send(embed=embed)
             except discord.Forbidden:
                 pass
+
+        # K Rô: start round loop
+        if isinstance(game, KRoGame):
+            kro_cog = self.bot.get_cog("KRoCommands")
+            if kro_cog:
+                kro_cog._round_task = asyncio.create_task(
+                    kro_cog.start_round_loop()
+                )
 
     # ------------------------------------------------------------------
     # /pausegame
@@ -340,6 +383,12 @@ class HostCommands(commands.Cog):
 
         game = self.bot.current_game
 
+        # Cancel K Rô round task if running
+        if isinstance(game, KRoGame):
+            kro_cog = self.bot.get_cog("KRoCommands")
+            if kro_cog and kro_cog._round_task and not kro_cog._round_task.done():
+                kro_cog._round_task.cancel()
+
         # Lấy leaderboard TRƯỚC khi đổi state
         leaderboard = game.get_leaderboard() if isinstance(game, LiXiNgayTetGame) else []
 
@@ -364,6 +413,30 @@ class HostCommands(commands.Cog):
                     continue
 
             embed.description = description or "Không có người chơi"
+            await interaction.response.send_message(embed=embed)
+        elif isinstance(game, KRoGame):
+            alive = game.alive_players
+            embed = discord.Embed(
+                title="🏁 GAME K RÔ KẾT THÚC",
+                color=discord.Color.gold(),
+            )
+            if alive:
+                winner = self.bot.get_user(alive[0])
+                name = winner.mention if winner else f"ID {alive[0]}"
+                embed.description = f"🏆 Người chiến thắng: {name}"
+            else:
+                # Show final standings by penalty
+                lines = []
+                sorted_players = sorted(
+                    game.penalties.items(), key=lambda x: x[1]
+                )
+                for idx, (pid, pen) in enumerate(sorted_players[:10], 1):
+                    user = self.bot.get_user(pid)
+                    n = user.display_name if user else f"ID {pid}"
+                    medal = ["🥇", "🥈", "🥉"][idx - 1] if idx <= 3 else f"#{idx}"
+                    status = " (loại)" if pid in game.eliminated else ""
+                    lines.append(f"{medal} **{n}**: {pen} phạt{status}")
+                embed.description = "\n".join(lines) if lines else "Không có người chơi"
             await interaction.response.send_message(embed=embed)
         else:
             await interaction.response.send_message("🏁 Game đã kết thúc!")

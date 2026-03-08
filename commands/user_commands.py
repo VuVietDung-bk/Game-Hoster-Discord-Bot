@@ -8,6 +8,7 @@ from discord.ext import commands
 
 from enums import GameState, GameType
 from games.li_xi_game import LiXiNgayTetGame
+from games.kro_game import KRoGame
 
 if TYPE_CHECKING:
     from bot import MinigameBot
@@ -54,6 +55,23 @@ class UserCommands(commands.Cog):
                     inline=False,
                 )
                 return embed
+            if gt == GameType.KRO:
+                embed = discord.Embed(
+                    title="📖 Hướng dẫn: K Rô",
+                    color=discord.Color.blue(),
+                )
+                embed.add_field(
+                    name="Lệnh người chơi",
+                    value=(
+                        "`/pick` - Chọn số (0-100)\n"
+                        "`/rules_update` - Xem luật bổ sung đang kích hoạt\n"
+                        "`/status` - Xem điểm phạt và người bị loại\n"
+                        "`/history` - Xem lại kết quả các vòng trước\n"
+                        "`/lastround` - Kết quả vòng gần nhất"
+                    ),
+                    inline=False,
+                )
+                return embed
             raise ValueError("Invalid game type")
 
         embed = discord.Embed(
@@ -88,7 +106,10 @@ class UserCommands(commands.Cog):
         )
         embed.add_field(
             name="🎲 Game khả dụng",
-            value="`li_xi_ngay_tet` - Lì Xì Ngày Tết",
+            value=(
+                "`li_xi_ngay_tet` - Lì Xì Ngày Tết\n"
+                "`kro` - K Rô"
+            ),
             inline=False,
         )
         return embed
@@ -182,6 +203,40 @@ class UserCommands(commands.Cog):
                 inline=False,
             )
             await interaction.response.send_message(embed=embed)
+        elif gt == GameType.KRO:
+            embed = discord.Embed(
+                title="📜 Luật chơi: K Rô",
+                color=discord.Color.purple(),
+            )
+            embed.add_field(
+                name="Cơ chế",
+                value=(
+                    "• Tất cả bắt đầu với 0 điểm phạt\n"
+                    "• Mỗi vòng, chọn số từ 0 đến 100\n"
+                    "• Mục tiêu = trung bình × 0.8\n"
+                    "• Người gần mục tiêu nhất thắng\n"
+                    "• Người thua +1 điểm phạt\n"
+                    "• Chạm mức phạt tối đa → bị loại\n"
+                    "• Còn 1 người → chiến thắng"
+                ),
+                inline=False,
+            )
+            embed.add_field(
+                name="Luật bổ sung (≤4 người)",
+                value="Nếu 2+ người chọn cùng số, số đó bị vô hiệu",
+                inline=False,
+            )
+            embed.add_field(
+                name="Luật bổ sung (≤3 người)",
+                value="Chọn đúng mục tiêu → thắng tuyệt đối, thua nhận 2 phạt",
+                inline=False,
+            )
+            embed.add_field(
+                name="Luật bổ sung (2 người)",
+                value="Nếu 1 người chọn 0, người chọn 100 thắng",
+                inline=False,
+            )
+            await interaction.response.send_message(embed=embed)
         else:
             await interaction.response.send_message(
                 "❌ Game này chưa có luật!", ephemeral=True
@@ -213,6 +268,16 @@ class UserCommands(commands.Cog):
 
         # Kiểm tra giới hạn
         if isinstance(self.bot.current_game, LiXiNgayTetGame):
+            if (
+                len(self.bot.current_game.players)
+                >= self.bot.current_game.settings["player_limit"]
+            ):
+                await interaction.response.send_message(
+                    "❌ Game đã đầy!", ephemeral=True
+                )
+                return
+
+        if isinstance(self.bot.current_game, KRoGame):
             if (
                 len(self.bot.current_game.players)
                 >= self.bot.current_game.settings["player_limit"]
