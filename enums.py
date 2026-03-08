@@ -5,6 +5,7 @@ class GameType(Enum):
     LI_XI_NGAY_TET = "li_xi_ngay_tet"
     KRO = "kro"
     JCO = "jco"
+    CHEN_THANH = "chen_thanh"
 
 
 class GameState(Enum):

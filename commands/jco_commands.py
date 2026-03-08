@@ -200,6 +200,46 @@ class JCoCommands(commands.Cog):
         return None
 
     # ------------------------------------------------------------------
+    # DM notification
+    # ------------------------------------------------------------------
+
+    async def _notify_jco_dm(self, game: JCoGame, is_rotation: bool = False):
+        """Gửi DM cho J Cơ hiện tại biết mình là J Cơ."""
+        if not game.jco_id:
+            return
+        user = self.bot.get_user(game.jco_id)
+        if not user:
+            try:
+                user = await self.bot.fetch_user(game.jco_id)
+            except Exception:
+                return
+        if is_rotation:
+            embed = discord.Embed(
+                title="🔄 BẠN LÀ J CƠ MỚI!",
+                description=(
+                    "Vai trò J Cơ đã được đảo — bạn là J Cơ từ vòng này.\n"
+                    "Dùng `/cheat_jco` để xem số của mình.\n"
+                    "Hãy hành động bí mật để không bị phát hiện!"
+                ),
+                color=discord.Color.red(),
+            )
+        else:
+            embed = discord.Embed(
+                title="🃏 BẠN LÀ J CƠ!",
+                description=(
+                    "Bạn được chọn làm J Cơ cho game này.\n"
+                    "Bạn biết số trên gáy mình — dùng `/cheat_jco` để xem.\n"
+                    "Mục tiêu: sống sót đến cuối mà không bị phát hiện!"
+                ),
+                color=discord.Color.dark_red(),
+            )
+        try:
+            dm = await user.create_dm()
+            await dm.send(embed=embed)
+        except discord.Forbidden:
+            pass
+
+    # ------------------------------------------------------------------
     # Round loop
     # ------------------------------------------------------------------
 
@@ -208,6 +248,9 @@ class JCoCommands(commands.Cog):
         game = self._get_running_game()
         if not game:
             return
+
+        # DM thông báo J Cơ đầu game
+        await self._notify_jco_dm(game, is_rotation=False)
 
         while game.state == GameState.RUNNING:
             game.current_answers.clear()
@@ -282,6 +325,10 @@ class JCoCommands(commands.Cog):
                         await channel.send(embed=embed2)
                     except discord.Forbidden:
                         pass
+
+            # DM thông báo J Cơ mới sau rotation
+            if result.rotation_happened:
+                await self._notify_jco_dm(game, is_rotation=True)
 
             # Check game over
             is_over, reason, winner_id = game.check_game_over()

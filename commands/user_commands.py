@@ -10,6 +10,7 @@ from enums import GameState, GameType
 from games.li_xi_game import LiXiNgayTetGame
 from games.kro_game import KRoGame
 from games.jco_game import JCoGame
+from games.chen_thanh_game import ChenThanhGame
 
 if TYPE_CHECKING:
     from bot import MinigameBot
@@ -47,7 +48,7 @@ class UserCommands(commands.Cog):
                     name="Lệnh người chơi",
                     value=(
                         "`/fight` - Thách đấu người khác\n"
-                        "`/stats` - Xem thông tin bản thân\n"
+                        "`/stats_lixi` - Xem thông tin bản thân\n"
                         "`/reroll` - Random lại tuổi (1 lần/ngày)\n"
                         "`/giveaway` - Tặng tiền cho người khác\n"
                         "`/gamble` - Người chơi không bao giờ thắng (1% thắng 200x, 99% thua)\n"
@@ -92,6 +93,23 @@ class UserCommands(commands.Cog):
                     inline=False,
                 )
                 return embed
+            if gt == GameType.CHEN_THANH:
+                embed = discord.Embed(
+                    title="📖 Hướng dẫn: Chén Thánh Phản Bội",
+                    color=discord.Color.blue(),
+                )
+                embed.add_field(
+                    name="Lệnh người chơi",
+                    value=(
+                        "`/action_chenthanh` - Đóng góp hoặc Đánh cắp\n"
+                        "`/dare` - Thách thức người nghi đã cắp (từ vòng 2)\n"
+                        "`/stats_chenthanh` - Xem số tiền của mình\n"
+                        "`/history_chenthanh` - Lịch sử các vòng\n"
+                        "`/status_chenthanh` - Trạng thái game"
+                    ),
+                    inline=False,
+                )
+                return embed
             raise ValueError("Invalid game type")
 
         embed = discord.Embed(
@@ -129,7 +147,8 @@ class UserCommands(commands.Cog):
             value=(
                 "`li_xi_ngay_tet` - Lì Xì Ngày Tết\n"
                 "`kro` - K Rô\n"
-                "`jco` - J Cơ"
+                "`jco` - J Cơ\n"
+                "`chen_thanh` - Chén Thánh Phản Bội"
             ),
             inline=False,
         )
@@ -288,7 +307,7 @@ class UserCommands(commands.Cog):
                 value=(
                     "• `/mirror` — xem số mình (1 lần duy nhất)\n"
                     "• Nếu bật rotation: sau 3 vòng không ai bị loại, "
-                    "số được gán lại ngẫu nhiên"
+                    "vai trò của J Cơ sẽ được trao ngẫu nhiên cho 1 người khác"
                 ),
                 inline=False,
             )
@@ -298,6 +317,48 @@ class UserCommands(commands.Cog):
                     "• J Cơ bị vote loại → tất cả thắng\n"
                     "• Chỉ còn J Cơ sống → J Cơ thắng\n"
                     "• Mọi người bị loại → hoà"
+                ),
+                inline=False,
+            )
+            await interaction.response.send_message(embed=embed)
+        elif gt == GameType.CHEN_THANH:
+            embed = discord.Embed(
+                title="📜 Luật chơi: Chén Thánh Phản Bội",
+                color=discord.Color.purple(),
+            )
+            embed.add_field(
+                name="Cơ chế",
+                value=(
+                    "• Có 1 hũ chung gọi là Chén Thánh\n"
+                    "• Mỗi vòng, mỗi người nhận M xu và bí mật chọn Đóng góp hoặc Đánh cắp\n"
+                    "• Vòng kết thúc khi tất cả đã chọn (hoặc hết giờ)"
+                ),
+                inline=False,
+            )
+            embed.add_field(
+                name="Quy tắc chia hũ",
+                value=(
+                    "• Tất cả Đóng góp → hũ x2, chia đều cho mọi người\n"
+                    "• Có người Đánh cắp → kẻ cắp chia nhau toàn bộ hũ\n"
+                    "• Tất cả Đánh cắp → hũ biến mất, không ai được gì"
+                ),
+                inline=False,
+            )
+            embed.add_field(
+                name="Thách thức (Dare)",
+                value=(
+                    "• Từ vòng 2, nếu bạn Đóng góp ở vòng trước → có thể thách thức 1 người\n"
+                    "• Nếu target đã Đánh cắp → target bị loại\n"
+                    "• Nếu target đã Đóng góp → bạn bị loại"
+                ),
+                inline=False,
+            )
+            embed.add_field(
+                name="Điều kiện kết thúc",
+                value=(
+                    "• Đạt N xu → thắng (ngang điểm: ai đóng góp nhiều hơn thắng)\n"
+                    "• Còn 1 người sống → thắng\n"
+                    "• Tất cả chết → không ai thắng"
                 ),
                 inline=False,
             )
@@ -353,6 +414,16 @@ class UserCommands(commands.Cog):
                 return
 
         if isinstance(self.bot.current_game, JCoGame):
+            if (
+                len(self.bot.current_game.players)
+                >= self.bot.current_game.settings["player_limit"]
+            ):
+                await interaction.response.send_message(
+                    "❌ Game đã đầy!", ephemeral=True
+                )
+                return
+
+        if isinstance(self.bot.current_game, ChenThanhGame):
             if (
                 len(self.bot.current_game.players)
                 >= self.bot.current_game.settings["player_limit"]

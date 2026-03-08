@@ -187,13 +187,13 @@ class LiXiCommands(commands.Cog):
         await interaction.response.send_message(embed=embed)
 
     # ------------------------------------------------------------------
-    # /stats
+    # /stats_lixi
     # ------------------------------------------------------------------
 
     @app_commands.command(
-        name="stats", description="[Lì Xì] Xem thông tin bản thân"
+        name="stats_lixi", description="[Lì Xì] Xem thông tin bản thân"
     )
-    async def stats(self, interaction: discord.Interaction):
+    async def stats_lixi(self, interaction: discord.Interaction):
         if not _in_game_channel(self.bot, interaction):
             await interaction.response.send_message(
                 "❌ Lệnh này chỉ được dùng trong kênh game!", ephemeral=True
