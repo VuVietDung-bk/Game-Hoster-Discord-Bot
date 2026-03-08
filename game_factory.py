@@ -4,6 +4,7 @@ from enums import GameType
 from games.base_game import BaseGame
 from games.li_xi_game import LiXiNgayTetGame
 from games.kro_game import KRoGame
+from games.jco_game import JCoGame
 
 
 class GameFactory:
@@ -15,4 +16,6 @@ class GameFactory:
             return LiXiNgayTetGame(host_id)
         if game_type == GameType.KRO:
             return KRoGame(host_id)
+        if game_type == GameType.JCO:
+            return JCoGame(host_id)
         return None

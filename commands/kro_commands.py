@@ -365,9 +365,9 @@ class KRoCommands(commands.Cog):
     # ------------------------------------------------------------------
 
     @app_commands.command(
-        name="status", description="[K Rô] Xem điểm phạt và danh sách bị loại"
+        name="status_kro", description="[K Rô] Xem điểm phạt và danh sách bị loại"
     )
-    async def status(self, interaction: discord.Interaction):
+    async def status_kro(self, interaction: discord.Interaction):
         if not _in_game_channel(self.bot, interaction):
             await interaction.response.send_message(
                 "❌ Lệnh này chỉ được dùng trong kênh game!", ephemeral=True
@@ -426,9 +426,9 @@ class KRoCommands(commands.Cog):
     # ------------------------------------------------------------------
 
     @app_commands.command(
-        name="history", description="[K Rô] Xem lại kết quả các vòng trước"
+        name="history_kro", description="[K Rô] Xem lại kết quả các vòng trước"
     )
-    async def history(self, interaction: discord.Interaction):
+    async def history_kro(self, interaction: discord.Interaction):
         if not _in_game_channel(self.bot, interaction):
             await interaction.response.send_message(
                 "❌ Lệnh này chỉ được dùng trong kênh game!", ephemeral=True

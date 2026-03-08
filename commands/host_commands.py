@@ -15,6 +15,7 @@ from game_factory import GameFactory
 from games.base_game import BaseGame
 from games.li_xi_game import LiXiNgayTetGame
 from games.kro_game import KRoGame
+from games.jco_game import JCoGame
 
 if TYPE_CHECKING:
     from bot import MinigameBot
@@ -161,6 +162,35 @@ class HostCommands(commands.Cog):
                     )
                     modal_self.add_item(modal_self.interval_input)
 
+                elif isinstance(game, JCoGame):
+                    modal_self.m_input = discord.ui.TextInput(
+                        label="M - Giới hạn số (2-10)",
+                        default=str(game.settings["M"]),
+                        max_length=2,
+                    )
+                    modal_self.add_item(modal_self.m_input)
+
+                    modal_self.player_limit = discord.ui.TextInput(
+                        label="Giới hạn người chơi (4-50)",
+                        default=str(game.settings["player_limit"]),
+                        max_length=2,
+                    )
+                    modal_self.add_item(modal_self.player_limit)
+
+                    modal_self.interval_input = discord.ui.TextInput(
+                        label="Thời gian vòng (5m/10m/30m/1h/6h/12h)",
+                        default=str(game.settings["game_interval"]),
+                        max_length=4,
+                    )
+                    modal_self.add_item(modal_self.interval_input)
+
+                    modal_self.rotation_input = discord.ui.TextInput(
+                        label="Đảo vai (on/off)",
+                        default="on" if game.settings["rotation"] else "off",
+                        max_length=3,
+                    )
+                    modal_self.add_item(modal_self.rotation_input)
+
             async def on_submit(modal_self, interaction: discord.Interaction):
                 try:
                     new_settings: dict = {}
@@ -188,6 +218,17 @@ class HostCommands(commands.Cog):
                         new_settings["game_interval"] = (
                             modal_self.interval_input.value.strip().lower()
                         )
+
+                    elif isinstance(modal_self.game, JCoGame):
+                        new_settings["M"] = int(modal_self.m_input.value)
+                        new_settings["player_limit"] = int(
+                            modal_self.player_limit.value
+                        )
+                        new_settings["game_interval"] = (
+                            modal_self.interval_input.value.strip().lower()
+                        )
+                        rot_val = modal_self.rotation_input.value.strip().lower()
+                        new_settings["rotation"] = rot_val == "on"
 
                     valid, error_msg = modal_self.game.validate_settings(new_settings)
                     if not valid:
@@ -334,6 +375,14 @@ class HostCommands(commands.Cog):
                     kro_cog.start_round_loop()
                 )
 
+        # J Cơ: start round loop
+        if isinstance(game, JCoGame):
+            jco_cog = self.bot.get_cog("JCoCommands")
+            if jco_cog:
+                jco_cog._round_task = asyncio.create_task(
+                    jco_cog.start_round_loop()
+                )
+
     # ------------------------------------------------------------------
     # /pausegame
     # ------------------------------------------------------------------
@@ -389,6 +438,12 @@ class HostCommands(commands.Cog):
             if kro_cog and kro_cog._round_task and not kro_cog._round_task.done():
                 kro_cog._round_task.cancel()
 
+        # Cancel J Cơ round task if running
+        if isinstance(game, JCoGame):
+            jco_cog = self.bot.get_cog("JCoCommands")
+            if jco_cog and jco_cog._round_task and not jco_cog._round_task.done():
+                jco_cog._round_task.cancel()
+
         # Lấy leaderboard TRƯỚC khi đổi state
         leaderboard = game.get_leaderboard() if isinstance(game, LiXiNgayTetGame) else []
 
@@ -437,6 +492,24 @@ class HostCommands(commands.Cog):
                     status = " (loại)" if pid in game.eliminated else ""
                     lines.append(f"{medal} **{n}**: {pen} phạt{status}")
                 embed.description = "\n".join(lines) if lines else "Không có người chơi"
+            await interaction.response.send_message(embed=embed)
+        elif isinstance(game, JCoGame):
+            jco_user = self.bot.get_user(game.jco_id) if game.jco_id else None
+            jco_name = jco_user.display_name if jco_user else f"ID {game.jco_id}"
+            embed = discord.Embed(
+                title="🏁 GAME J CƠ KẾT THÚC",
+                description=f"🃏 J Cơ là: **{jco_name}**",
+                color=discord.Color.gold(),
+            )
+            alive_names = []
+            for pid in game.alive_players:
+                u = self.bot.get_user(pid)
+                alive_names.append(u.display_name if u else f"ID {pid}")
+            embed.add_field(
+                name="✅ Người sống sót",
+                value=", ".join(alive_names) if alive_names else "Không ai",
+                inline=False,
+            )
             await interaction.response.send_message(embed=embed)
         else:
             await interaction.response.send_message("🏁 Game đã kết thúc!")

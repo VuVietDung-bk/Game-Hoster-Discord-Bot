@@ -9,6 +9,7 @@ from discord.ext import commands
 from enums import GameState, GameType
 from games.li_xi_game import LiXiNgayTetGame
 from games.kro_game import KRoGame
+from games.jco_game import JCoGame
 
 if TYPE_CHECKING:
     from bot import MinigameBot
@@ -65,9 +66,28 @@ class UserCommands(commands.Cog):
                     value=(
                         "`/pick` - Chọn số (0-100)\n"
                         "`/rules_update` - Xem luật bổ sung đang kích hoạt\n"
-                        "`/status` - Xem điểm phạt và người bị loại\n"
-                        "`/history` - Xem lại kết quả các vòng trước\n"
+                        "`/status_kro` - Xem điểm phạt và người bị loại\n"
+                        "`/history_kro` - Xem lại kết quả các vòng trước\n"
                         "`/lastround` - Kết quả vòng gần nhất"
+                    ),
+                    inline=False,
+                )
+                return embed
+            if gt == GameType.JCO:
+                embed = discord.Embed(
+                    title="📖 Hướng dẫn: J Cơ",
+                    color=discord.Color.blue(),
+                )
+                embed.add_field(
+                    name="Lệnh người chơi",
+                    value=(
+                        "`/checknumber` - Xem số trên gáy người khác (DM)\n"
+                        "`/answer` - Dự đoán số của mình\n"
+                        "`/mirror` - Dùng gương xem số (1 lần duy nhất)\n"
+                        "`/vote` - Vote loại người nghi ngờ (từ vòng 2)\n"
+                        "`/history_jco` - Lịch sử người bị loại\n"
+                        "`/status_jco` - Trạng thái game\n"
+                        "`/cheat_jco` - Xem số (chỉ J Cơ)"
                     ),
                     inline=False,
                 )
@@ -108,7 +128,8 @@ class UserCommands(commands.Cog):
             name="🎲 Game khả dụng",
             value=(
                 "`li_xi_ngay_tet` - Lì Xì Ngày Tết\n"
-                "`kro` - K Rô"
+                "`kro` - K Rô\n"
+                "`jco` - J Cơ"
             ),
             inline=False,
         )
@@ -237,6 +258,50 @@ class UserCommands(commands.Cog):
                 inline=False,
             )
             await interaction.response.send_message(embed=embed)
+        elif gt == GameType.JCO:
+            embed = discord.Embed(
+                title="📜 Luật chơi: J Cơ",
+                color=discord.Color.purple(),
+            )
+            embed.add_field(
+                name="Cơ chế",
+                value=(
+                    "• Mỗi người được gán 1 số (1–M) trên gáy\n"
+                    "• Bạn thấy số của người khác, không thấy số mình\n"
+                    "• 1 người bí mật là J Cơ — biết số của mình\n"
+                    "• Mỗi vòng: đoán số mình hoặc bỏ qua\n"
+                    "• Đoán đúng → sống sót, đoán sai → bị loại"
+                ),
+                inline=False,
+            )
+            embed.add_field(
+                name="Vote (từ vòng 2)",
+                value=(
+                    "• Mỗi người vote 1 người nghi là J Cơ\n"
+                    "• Quá bán (>50%) → người đó bị loại\n"
+                    "• J Cơ bị vote loại → tất cả còn lại thắng"
+                ),
+                inline=False,
+            )
+            embed.add_field(
+                name="Gương & Rotation",
+                value=(
+                    "• `/mirror` — xem số mình (1 lần duy nhất)\n"
+                    "• Nếu bật rotation: sau 3 vòng không ai bị loại, "
+                    "số được gán lại ngẫu nhiên"
+                ),
+                inline=False,
+            )
+            embed.add_field(
+                name="Điều kiện kết thúc",
+                value=(
+                    "• J Cơ bị vote loại → tất cả thắng\n"
+                    "• Chỉ còn J Cơ sống → J Cơ thắng\n"
+                    "• Mọi người bị loại → hoà"
+                ),
+                inline=False,
+            )
+            await interaction.response.send_message(embed=embed)
         else:
             await interaction.response.send_message(
                 "❌ Game này chưa có luật!", ephemeral=True
@@ -278,6 +343,16 @@ class UserCommands(commands.Cog):
                 return
 
         if isinstance(self.bot.current_game, KRoGame):
+            if (
+                len(self.bot.current_game.players)
+                >= self.bot.current_game.settings["player_limit"]
+            ):
+                await interaction.response.send_message(
+                    "❌ Game đã đầy!", ephemeral=True
+                )
+                return
+
+        if isinstance(self.bot.current_game, JCoGame):
             if (
                 len(self.bot.current_game.players)
                 >= self.bot.current_game.settings["player_limit"]

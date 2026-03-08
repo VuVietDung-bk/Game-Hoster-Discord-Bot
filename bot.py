@@ -7,6 +7,7 @@ from enums import GameState, GameType, GameInterval
 from games.base_game import BaseGame
 from games.li_xi_game import LiXiNgayTetGame
 from games.kro_game import KRoGame
+from games.jco_game import JCoGame
 
 
 class MinigameBot(commands.Bot):
@@ -30,6 +31,7 @@ class MinigameBot(commands.Bot):
         await self.load_extension("commands.user_commands")
         await self.load_extension("commands.lixi_commands")
         await self.load_extension("commands.kro_commands")
+        await self.load_extension("commands.jco_commands")
 
         await self.tree.sync()
         print("Commands synced!")
