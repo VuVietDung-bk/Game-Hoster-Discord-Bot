@@ -228,26 +228,6 @@ class ChenThanhCommands(commands.Cog):
             # Announce result
             if channel:
                 embed = _build_round_embed(result, self.bot)
-
-                # Show balances
-                balance_lines = []
-                sorted_alive = sorted(
-                    game.alive_players,
-                    key=lambda pid: game.balances.get(pid, 0),
-                    reverse=True,
-                )
-                for pid in sorted_alive:
-                    user = self.bot.get_user(pid)
-                    name = user.display_name if user else f"ID {pid}"
-                    bal = game.balances.get(pid, 0)
-                    balance_lines.append(f"• **{name}**: {bal} xu")
-
-                embed.add_field(
-                    name="💰 Số dư",
-                    value="\n".join(balance_lines) if balance_lines else "Không ai",
-                    inline=False,
-                )
-
                 try:
                     await channel.send(embed=embed)
                 except discord.Forbidden:
