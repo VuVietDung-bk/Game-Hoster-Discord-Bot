@@ -17,6 +17,7 @@ from games.li_xi_game import LiXiNgayTetGame
 from games.kro_game import KRoGame
 from games.jco_game import JCoGame
 from games.chen_thanh_game import ChenThanhGame
+from games.arena_game import ArenaGame
 
 if TYPE_CHECKING:
     from bot import MinigameBot
@@ -221,6 +222,28 @@ class HostCommands(commands.Cog):
                     )
                     modal_self.add_item(modal_self.interval_input)
 
+                elif isinstance(game, ArenaGame):
+                    modal_self.m_input = discord.ui.TextInput(
+                        label="M - Stamina ban đầu (50-500)",
+                        default=str(game.settings["M"]),
+                        max_length=3,
+                    )
+                    modal_self.add_item(modal_self.m_input)
+
+                    modal_self.player_limit = discord.ui.TextInput(
+                        label="Giới hạn người chơi (4-50)",
+                        default=str(game.settings["player_limit"]),
+                        max_length=2,
+                    )
+                    modal_self.add_item(modal_self.player_limit)
+
+                    modal_self.interval_input = discord.ui.TextInput(
+                        label="Thời gian vòng (1m/2m/5m/10m/30m/12h)",
+                        default=str(game.settings["game_interval"]),
+                        max_length=4,
+                    )
+                    modal_self.add_item(modal_self.interval_input)
+
             async def on_submit(modal_self, interaction: discord.Interaction):
                 try:
                     new_settings: dict = {}
@@ -263,6 +286,15 @@ class HostCommands(commands.Cog):
                     elif isinstance(modal_self.game, ChenThanhGame):
                         new_settings["M"] = int(modal_self.m_input.value)
                         new_settings["N"] = int(modal_self.n_input.value)
+                        new_settings["player_limit"] = int(
+                            modal_self.player_limit.value
+                        )
+                        new_settings["game_interval"] = (
+                            modal_self.interval_input.value.strip().lower()
+                        )
+
+                    elif isinstance(modal_self.game, ArenaGame):
+                        new_settings["M"] = int(modal_self.m_input.value)
                         new_settings["player_limit"] = int(
                             modal_self.player_limit.value
                         )
@@ -431,6 +463,14 @@ class HostCommands(commands.Cog):
                     ct_cog.start_round_loop()
                 )
 
+        # Đấu Trường: start round loop
+        if isinstance(game, ArenaGame):
+            arena_cog = self.bot.get_cog("ArenaCommands")
+            if arena_cog:
+                arena_cog._round_task = asyncio.create_task(
+                    arena_cog.start_round_loop()
+                )
+
     # ------------------------------------------------------------------
     # /pausegame
     # ------------------------------------------------------------------
@@ -497,6 +537,12 @@ class HostCommands(commands.Cog):
             ct_cog = self.bot.get_cog("ChenThanhCommands")
             if ct_cog and ct_cog._round_task and not ct_cog._round_task.done():
                 ct_cog._round_task.cancel()
+
+        # Cancel Đấu Trường round task if running
+        if isinstance(game, ArenaGame):
+            arena_cog = self.bot.get_cog("ArenaCommands")
+            if arena_cog and arena_cog._round_task and not arena_cog._round_task.done():
+                arena_cog._round_task.cancel()
 
         # Lấy leaderboard TRƯỚC khi đổi state
         leaderboard = game.get_leaderboard() if isinstance(game, LiXiNgayTetGame) else []
@@ -594,6 +640,39 @@ class HostCommands(commands.Cog):
                 status = " 💀" if pid in game.eliminated else ""
                 medal = ["🥇", "🥈", "🥉"][idx - 1] if idx <= 3 else f"#{idx}"
                 lines.append(f"{medal} **{n}**: {bal} xu | {contribs} đóng góp{status}")
+            embed.add_field(
+                name="📊 Bảng xếp hạng",
+                value="\n".join(lines) if lines else "Không có",
+                inline=False,
+            )
+            await interaction.response.send_message(embed=embed)
+        elif isinstance(game, ArenaGame):
+            is_over, reason, winners = game.check_game_over()
+            embed = discord.Embed(
+                title="🏁 GAME ĐẤU TRƯỜNG KẾT THÚC",
+                color=discord.Color.gold(),
+            )
+            if winners:
+                winner_names = []
+                for pid in winners:
+                    u = self.bot.get_user(pid)
+                    winner_names.append(u.mention if u else f"ID {pid}")
+                embed.description = f"🏆 Người thắng: {', '.join(winner_names)}"
+            else:
+                embed.description = "💀 Không ai thắng!"
+            all_players = sorted(
+                game.players.keys(),
+                key=lambda pid: game.stamina.get(pid, 0),
+                reverse=True,
+            )
+            lines = []
+            for idx, pid in enumerate(all_players[:10], 1):
+                u = self.bot.get_user(pid)
+                n = u.display_name if u else f"ID {pid}"
+                sta = game.stamina.get(pid, 0)
+                status = " 💀" if pid in game.eliminated else ""
+                medal = ["🥇", "🥈", "🥉"][idx - 1] if idx <= 3 else f"#{idx}"
+                lines.append(f"{medal} **{n}**: {sta} ST{status}")
             embed.add_field(
                 name="📊 Bảng xếp hạng",
                 value="\n".join(lines) if lines else "Không có",

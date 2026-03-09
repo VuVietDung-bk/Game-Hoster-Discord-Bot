@@ -11,6 +11,7 @@ from games.li_xi_game import LiXiNgayTetGame
 from games.kro_game import KRoGame
 from games.jco_game import JCoGame
 from games.chen_thanh_game import ChenThanhGame
+from games.arena_game import ArenaGame
 
 if TYPE_CHECKING:
     from bot import MinigameBot
@@ -110,6 +111,21 @@ class UserCommands(commands.Cog):
                     inline=False,
                 )
                 return embed
+            if gt == GameType.ARENA:
+                embed = discord.Embed(
+                    title="📖 Hướng dẫn: Đấu Trường Sinh Tử",
+                    color=discord.Color.blue(),
+                )
+                embed.add_field(
+                    name="Lệnh người chơi",
+                    value=(
+                        "`/action_arena` - Chọn hành động (DM bí mật)\n"
+                        "`/stats_arena` - Xem Stamina mọi người\n"
+                        "`/history_arena` - Xem biến động máu vòng trước"
+                    ),
+                    inline=False,
+                )
+                return embed
             raise ValueError("Invalid game type")
 
         embed = discord.Embed(
@@ -148,7 +164,8 @@ class UserCommands(commands.Cog):
                 "`li_xi_ngay_tet` - Lì Xì Ngày Tết\n"
                 "`kro` - K Rô\n"
                 "`jco` - J Cơ\n"
-                "`chen_thanh` - Chén Thánh Phản Bội"
+                "`chen_thanh` - Chén Thánh Phản Bội\n"
+                "`arena` - Đấu Trường Sinh Tử"
             ),
             inline=False,
         )
@@ -363,6 +380,62 @@ class UserCommands(commands.Cog):
                 inline=False,
             )
             await interaction.response.send_message(embed=embed)
+        elif gt == GameType.ARENA:
+            embed = discord.Embed(
+                title="📜 Luật chơi: Đấu Trường Sinh Tử",
+                color=discord.Color.purple(),
+            )
+            embed.add_field(
+                name="Cơ chế",
+                value=(
+                    "• Mỗi người bắt đầu với M Stamina\n"
+                    "• Mỗi vòng chọn bí mật 1 trong 4 hành động\n"
+                    "• Vòng tự động kết thúc theo thời gian đã cài"
+                ),
+                inline=False,
+            )
+            embed.add_field(
+                name="⚔️ Tấn công (Attack)",
+                value=(
+                    "• -20 ST. Chọn 1 mục tiêu\n"
+                    "• Gây 30 dmg (40 nếu ≥3 người cùng đánh 1 mục tiêu)\n"
+                    "• Nếu mục tiêu chết, tất cả người tấn công được +M/4 ST"
+                ),
+                inline=False,
+            )
+            embed.add_field(
+                name="🛡️ Phòng thủ (Defend)",
+                value=(
+                    "• -10 ST. Chặn hoàn toàn ≤2 đòn tấn công\n"
+                    "• Nếu bị ≥3 người tấn công: nhận 50% sát thương từ đòn thứ 3 trở đi"
+                ),
+                inline=False,
+            )
+            embed.add_field(
+                name="💪 Tích lũy (Charge)",
+                value=(
+                    "• +25 ST. Nhưng nếu bị tấn công, nhận dmg x1.5"
+                ),
+                inline=False,
+            )
+            embed.add_field(
+                name="💥 Hủy diệt (Destroy)",
+                value=(
+                    "• Cần đạt 2×M ST, tiêu tốn M ST\n"
+                    "• Giết 1 người, không thể chống đỡ\n"
+                    "• Thực hiện trước tất cả hành động khác"
+                ),
+                inline=False,
+            )
+            embed.add_field(
+                name="Điều kiện kết thúc",
+                value=(
+                    "• Còn 1 người sống → thắng\n"
+                    "• Tất cả chết → không ai thắng"
+                ),
+                inline=False,
+            )
+            await interaction.response.send_message(embed=embed)
         else:
             await interaction.response.send_message(
                 "❌ Game này chưa có luật!", ephemeral=True
@@ -424,6 +497,16 @@ class UserCommands(commands.Cog):
                 return
 
         if isinstance(self.bot.current_game, ChenThanhGame):
+            if (
+                len(self.bot.current_game.players)
+                >= self.bot.current_game.settings["player_limit"]
+            ):
+                await interaction.response.send_message(
+                    "❌ Game đã đầy!", ephemeral=True
+                )
+                return
+
+        if isinstance(self.bot.current_game, ArenaGame):
             if (
                 len(self.bot.current_game.players)
                 >= self.bot.current_game.settings["player_limit"]

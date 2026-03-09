@@ -9,6 +9,7 @@ from games.li_xi_game import LiXiNgayTetGame
 from games.kro_game import KRoGame
 from games.jco_game import JCoGame
 from games.chen_thanh_game import ChenThanhGame
+from games.arena_game import ArenaGame
 
 
 class MinigameBot(commands.Bot):
@@ -34,6 +35,7 @@ class MinigameBot(commands.Bot):
         await self.load_extension("commands.kro_commands")
         await self.load_extension("commands.jco_commands")
         await self.load_extension("commands.chen_thanh_commands")
+        await self.load_extension("commands.arena_commands")
 
         await self.tree.sync()
         print("Commands synced!")

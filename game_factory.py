@@ -6,6 +6,7 @@ from games.li_xi_game import LiXiNgayTetGame
 from games.kro_game import KRoGame
 from games.jco_game import JCoGame
 from games.chen_thanh_game import ChenThanhGame
+from games.arena_game import ArenaGame
 
 
 class GameFactory:
@@ -21,4 +22,6 @@ class GameFactory:
             return JCoGame(host_id)
         if game_type == GameType.CHEN_THANH:
             return ChenThanhGame(host_id)
+        if game_type == GameType.ARENA:
+            return ArenaGame(host_id)
         return None
